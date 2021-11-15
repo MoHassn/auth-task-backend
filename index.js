@@ -3,7 +3,7 @@ const bodyParser = require("body-parser");
 const app = express();
 
 app.use(bodyParser.json());
-const { pool, createUser, findUserByEmail } = require("./db");
+const { pool, createUser, findUserByEmail, comparePassword } = require("./db");
 
 (function initiateDbTables() {
   pool
@@ -59,7 +59,7 @@ app.post("/login", async (req, res) => {
     return res.status(400).send("User does not exist");
   }
 
-  if (user.password !== password) {
+  if (!(await comparePassword(password, user.password))) {
     return res.status(400).send("Password is incorrect");
   }
 
