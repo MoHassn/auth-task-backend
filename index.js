@@ -1,9 +1,12 @@
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
+const JWT = require("jsonwebtoken");
 const app = express();
 
 app.use(bodyParser.json());
 const { pool, createUser, findUserByEmail, comparePassword } = require("./db");
+const { requiresAuth } = require("./middlewares");
 
 (function initiateDbTables() {
   pool
@@ -21,9 +24,8 @@ const { pool, createUser, findUserByEmail, comparePassword } = require("./db");
     });
 })();
 
-app.get("/", (req, res) => {
+app.get("/", requiresAuth, (req, res) => {
   res.send("Hello World!");
-  createUser("test", "hd");
 });
 
 app.post("/register", async (req, res) => {
@@ -42,7 +44,7 @@ app.post("/register", async (req, res) => {
   }
 
   const newUser = await createUser(email, password);
-  res.send(newUser);
+  res.send(generateJWT({ email: newUser.email }));
 });
 
 app.post("/login", async (req, res) => {
@@ -63,9 +65,14 @@ app.post("/login", async (req, res) => {
     return res.status(400).send("Password is incorrect");
   }
 
-  res.send(user);
+  res.send(generateJWT({ email: user.email }));
 });
 
 app.listen(3000, () => {
   console.log("Listening on port 3000");
 });
+
+function generateJWT(user) {
+  const jwt = JWT.sign(user, process.env.JWT_SECRET);
+  return jwt;
+}
