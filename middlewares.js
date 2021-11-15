@@ -5,8 +5,13 @@ function requiresAuth(req, res, next) {
   const { authorization } = req.headers;
   if (!authorization) {
     return res
-      .status(401)
-      .send("Unauthorized, Must send Authorization header.");
+      .status(400)
+      .send(
+        JSON.stringify({
+          code: 400,
+          message: "Unauthorized, Must send Authorization header.",
+        })
+      );
   }
   const parts = authorization.split(" ");
   if (parts.length !== 2) {

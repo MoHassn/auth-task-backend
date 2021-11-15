@@ -1,10 +1,12 @@
 require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
+const cors = require("cors");
 const JWT = require("jsonwebtoken");
 const app = express();
 
 app.use(bodyParser.json());
+app.use(cors());
 const { pool, createUser, findUserByEmail, comparePassword } = require("./db");
 const { requiresAuth } = require("./middlewares");
 
@@ -25,47 +27,70 @@ const { requiresAuth } = require("./middlewares");
 })();
 
 app.get("/", requiresAuth, (req, res) => {
-  res.send("Hello World!");
+  res.status(200).send(JSON.stringify({ code: 200, message: "Hello World!" }));
 });
 
 app.post("/register", async (req, res) => {
   console.log("body", req.body);
   const { email, password } = req.body;
   if (!email) {
-    return res.status(400).send("Email is required");
+    return res
+      .status(400)
+      .send(JSON.stringify({ code: 400, message: "Email is required" }));
   }
   if (!password) {
-    return res.status(400).send("Password is required");
+    return res
+      .status(400)
+      .send(JSON.stringify({ code: 400, message: "Password is required" }));
   }
 
   const user = await findUserByEmail(email);
   if (user) {
-    return res.status(400).send("User already exists");
+    return res
+      .status(400)
+      .send(JSON.stringify({ code: 400, message: "User already exists" }));
   }
 
   const newUser = await createUser(email, password);
-  res.send(generateJWT({ email: newUser.email }));
+  const token = generateJWT({ email: newUser.email });
+  res.send(JSON.stringify({ code: 200, token }));
 });
 
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email) {
-    return res.status(400).send("Email is required");
+    return res
+      .status(400)
+      .send(JSON.stringify({ code: 400, message: "Email is required" }));
   }
   if (!password) {
-    return res.status(400).send("Password is required");
+    return res
+      .status(400)
+      .send(JSON.stringify({ code: 400, message: "Password is required" }));
   }
 
   const user = await findUserByEmail(email);
   if (!user) {
-    return res.status(400).send("User does not exist");
+    return res
+      .status(403)
+      .send(
+        JSON.stringify(
+          JSON.stringify({ code: 403, message: "User does not exist" })
+        )
+      );
   }
 
   if (!(await comparePassword(password, user.password))) {
-    return res.status(400).send("Password is incorrect");
+    return res
+      .status(403)
+      .send(
+        JSON.stringify(
+          JSON.stringify({ code: 403, message: "Password is incorrect" })
+        )
+      );
   }
-
-  res.send(generateJWT({ email: user.email }));
+  const token = generateJWT({ email: user.email });
+  res.status(200).send(JSON.stringify({ code: 200, token }));
 });
 
 app.listen(3000, () => {
